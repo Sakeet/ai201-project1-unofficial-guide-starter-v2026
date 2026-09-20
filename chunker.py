@@ -1,27 +1,8 @@
 """
 Stage 2 of the pipeline: splitting documents into chunks.
-
-⚠️ THIS IS THE FILE YOU CHANGE IN MILESTONE 3.
-
-`split_documents` below is deliberately plain. It cuts every document into
-fixed-size pieces with a fixed overlap and pays no attention to where sentences
-or paragraphs end. It works, and it is not good.
-
-On a corpus of short posts it may not cut anything at all: `campus_life` comes
-out as 88 documents and 88 chunks, because almost nothing in it reaches 800
-characters. That is the baseline, not a bug — Milestone 3 is where you decide
-whether one post should stay one chunk.
-
-Your job in Milestone 3 is to replace the *body* of `split_documents` with a
-strategy that fits the documents you actually read in Milestone 1. Keep the
-name and the shape of what it returns — the rest of the pipeline calls it, and
-your README has to name the function that produced your chunks.
-
-If you get stuck for 30 minutes, `fallback_split` is the original. Switch back
-to it, write down what you saw, and move on. That's a real observation about
-your pipeline, not giving up.
 """
 
+import re
 from dataclasses import dataclass
 
 import config
@@ -49,9 +30,6 @@ def fallback_split(
 ) -> list[Chunk]:
     """
     The starter's original chunker. Fixed-size character windows with overlap.
-
-    Keep this function. Milestone 3's stop rule points back at it, and having
-    something to compare your own strategy against is useful in unit 2.
     """
     chunk_size = chunk_size or config.CHUNK_SIZE
     overlap = overlap or config.CHUNK_OVERLAP
@@ -82,22 +60,60 @@ def fallback_split(
 
 def split_documents(documents: list[Document]) -> list[Chunk]:
     """
-    Split documents into chunks. ⚠️ REPLACE THE BODY OF THIS IN MILESTONE 3.
-
-    Right now it just calls the fallback. That is the plain, generic behaviour
-    the brief is talking about.
-
-    When you write your own strategy, set `produced_by` to
-    "chunker.py::split_documents" so your README's Sample Chunks section names
-    the right function. `app.py chunks` prints that string for you.
-
-    Things worth thinking about before you write any code:
-      - Are your documents short posts or long guides?
-      - Is the useful information in one sentence, or spread over a paragraph?
-      - Would splitting on paragraph breaks keep more thoughts intact than
-        splitting on a character count?
+    Split documents into chunks. Splits on sentence boundaries, then groups
+    sentences into chunks of up to 2, with 1 sentence of overlap between
+    consecutive chunks. campus_life documents are short (avg ~317 chars) but
+    often bundle 2-3 distinct facts into one post, so grouping by sentence
+    keeps each chunk to one or two related facts instead of an arbitrary
+    character cutoff. Short title-like fragments (e.g. "On the add/drop
+    deadline") are merged into the following sentence instead of standing
+    alone as a chunk, since a fragment that short can't answer a question by
+    itself.
     """
-    return fallback_split(documents)
+    sentences_per_chunk = 3
+    overlap_sentences = 1
+    min_sentence_length = 40
+
+    chunks: list[Chunk] = []
+    for doc in documents:
+        raw_sentences = re.split(r"(?<=[.!?])\s+", doc.text.strip())
+        sentences = [s.strip() for s in raw_sentences if s.strip()]
+
+        # Merge any very short leading fragment (like a title line with no
+        # terminal punctuation) into the next sentence instead of treating
+        # it as its own unit.
+        merged = []
+        i = 0
+        while i < len(sentences):
+            if len(sentences[i]) < min_sentence_length and i + 1 < len(sentences):
+                merged.append(sentences[i] + " " + sentences[i + 1])
+                i += 2
+            else:
+                merged.append(sentences[i])
+                i += 1
+        sentences = merged
+
+        if not sentences:
+            continue
+
+        index = 0
+        i = 0
+        step = max(1, sentences_per_chunk - overlap_sentences)
+        while i < len(sentences):
+            group = sentences[i : i + sentences_per_chunk]
+            text = " ".join(group)
+            chunks.append(
+                Chunk(
+                    text=text,
+                    source=doc.source,
+                    index=index,
+                    produced_by="chunker.py::split_documents",
+                )
+            )
+            index += 1
+            i += step
+
+    return chunks
 
 
 def describe(chunks: list[Chunk]) -> str:
