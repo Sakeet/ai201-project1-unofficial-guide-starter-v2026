@@ -79,28 +79,29 @@ strong gap like this.
 At least 90% of chunks are at least 250 characters long.
 
 **Why this target:**
-My shortest chunk right now is 178 characters, which reads as a fragment
-rather than a complete thought — not enough to answer a question on its own.
-I didn't require 100% because a few genuinely short pieces of content (like a
-one-line policy fact) will always fall under 250 characters no matter how good
-my chunking strategy is. 90% still means the vast majority of chunks are
-substantial enough to stand alone.
+My shortest chunk right now is 178 characters, which reads as a fragment rather than a complete thought — not enough to answer a question on its own. I didn't require 100% because a few genuinely short pieces of content (like a one-line policy fact) will always fall under 250 characters no matter how good my chunking strategy is. 90% still means the vast majority of chunks are substantial enough to stand alone.
 
 ---
 
 ## 5. The relevance gate catches borderline questions, not just obvious ones
 
-When I ask 5 borderline questions — plausible-sounding but not actually
-covered by my documents — the relevance gate refuses at least 4 of the 5.
+When I ask 5 borderline questions — plausible-sounding but not actually covered by my documents — the relevance gate refuses at least 4 of the 5.
+
+**Borderline test questions and results:**
+
+| Question | Best distance | Result |
+|---|---|---|
+| Do international students get priority in the housing lottery? | 0.350 | Refused |
+| What happens if I miss the fifteen-day grade appeal window? | 0.380 | Partial answer (not a clean refusal) |
+| Can I pay for a parking permit in installments? | 0.593 | Refused |
+| Is there an exception to the meal plan change deadline for financial hardship? | 0.348 | Refused |
+| Does the work-study income exemption still apply during summer session? | 0.541 | Refused |
+
+4 of 5 refused cleanly, meeting the target. The grade-appeal question got a partial, hedged answer rather than a clean refusal — the system answered the part it could ("skipping the instructor step wastes the appeal window") while explicitly flagging what it couldn't answer, rather than confidently guessing. That's arguably good behavior, but it doesn't match this
+criterion's literal "I don't have enough information about that" wording, so I'm counting it as a miss against the strict target.
 
 **Why this target:**
-Criterion 3 already covers questions from "a different world entirely," but a
-wrong guess on a borderline question is worse: the system would confidently
-state something false rather than just failing to refuse something obvious. I
-set this at 4 of 5, matching criterion 3, rather than something looser,
-because a false answer is a more serious failure than a minor quality issue. I
-didn't require 5 of 5 because borderline questions are inherently harder to
-catch than clearly out-of-scope ones — even a good gate may miss one.
+I tested this against 5 borderline questions built from real corpus topics (e.g. asking whether international students get lottery priority, when the lottery doc only discusses class-year ordering). 4 of 5 refused cleanly, with distances (0.348–0.593) sitting in a clear middle zone between my in-corpus range (0.171–0.273) and out-of-scope range (0.825–0.934) — confirming borderline questions really do occupy distinct territory in this embedding space. I set the target at 4 of 5 because a wrong guess here means the system confidently states something false, which is worse than a minor quality issue, but even a good gate can miss the hardest case — the grade-appeal question got a hedged partial answer rather than a clean refusal.
 
 ---
 
