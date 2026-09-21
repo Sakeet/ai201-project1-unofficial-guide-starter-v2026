@@ -181,9 +181,11 @@ def ask_pipeline(
     variant="default",
     top_k=None,
     threshold=None,
+    topic=None,
     on_gate=None,
     on_prompt=None,
 ):
+
     """Retrieve, gate, answer. Returns the outcome and prints nothing.
 
     One question through all five stages, with the result handed back as a
@@ -208,6 +210,7 @@ def ask_pipeline(
         top_k=top_k or config.TOP_K,
         corpus=corpus or config.CORPUS,
         variant=variant,
+        topic=topic,
     )
     decision = gate.check(results, threshold=threshold)
     if on_gate is not None:
@@ -242,9 +245,11 @@ def _ask_one(
     variant,
     top_k,
     threshold,
+    topic=None,
     show_distances=True,
     show_prompt=False,
 ):
+
     import gate
     from generate import GROUNDING_INSTRUCTION
 
@@ -269,6 +274,7 @@ def _ask_one(
         variant=variant,
         top_k=top_k,
         threshold=threshold,
+        topic=topic,
         on_gate=print_distances if show_distances else None,
         on_prompt=print_prompt if show_prompt else None,
     )
@@ -294,6 +300,7 @@ def cmd_ask(args):
                 args.variant,
                 args.top_k,
                 args.threshold,
+                topic=args.topic,
                 show_prompt=args.show_prompt,
             )
         else:
@@ -312,6 +319,7 @@ def cmd_ask(args):
                     args.variant,
                     args.top_k,
                     args.threshold,
+                    topic=args.topic,
                     show_prompt=args.show_prompt,
                 )
     finally:
@@ -366,6 +374,10 @@ def build_parser():
     p_ask.add_argument("question", nargs="?")
     p_ask.add_argument("--top-k", type=int)
     p_ask.add_argument("--threshold", type=float, help="override the gate cutoff")
+    p_ask.add_argument(
+        "--topic",
+        help="limit retrieval to one topic prefix (admin, dining, housing, course)",
+    )
     p_ask.add_argument(
         "--show-prompt",
         action="store_true",

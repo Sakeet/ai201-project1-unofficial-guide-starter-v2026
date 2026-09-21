@@ -170,24 +170,35 @@ def build_index(
             documents=[c.text for c in window],
             embeddings=embed([c.text for c in window]),
             metadatas=[
-                {"source": c.source, "index": c.index, "produced_by": c.produced_by}
+                {
+                    "source": c.source,
+                    "index": c.index,
+                    "produced_by": c.produced_by,
+                    "topic": c.source.split("_")[0],
+                }
                 for c in window
             ],
         )
 
     return len(chunks)
 
-
 def search(
     question: str,
     top_k: int | None = None,
     corpus: str | None = None,
     variant: str = "default",
+    topic: str | None = None,
 ) -> list[Result]:
     """
     Retrieve the chunks closest in meaning to a question.
 
     Returns them nearest-first, each with its distance.
+
+    `topic`, if given, narrows retrieval to chunks whose source filename
+    starts with that prefix (e.g. "housing", "dining", "admin", "course").
+    This uses Chroma's native metadata filtering via `where` — chunks
+    outside the topic are excluded from the nearest-neighbor search itself,
+    not just filtered out of the results afterward.
     """
     top_k = top_k or config.TOP_K
     name = config.collection_name(corpus, variant)
@@ -199,9 +210,12 @@ def search(
             f"No index called '{name}'. Run `python app.py index` first."
         ) from exc
 
+    where = {"topic": topic} if topic else None
+
     raw = collection.query(
         query_embeddings=embed([question]),
         n_results=min(top_k, collection.count()),
+        where=where,
     )
 
     results: list[Result] = []
@@ -218,7 +232,6 @@ def search(
             )
         )
     return results
-
 
 def index_exists(corpus: str | None = None, variant: str = "default") -> bool:
     """Is there an index here to search, without searching it?
