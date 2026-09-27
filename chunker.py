@@ -70,8 +70,8 @@ def split_documents(documents: list[Document]) -> list[Chunk]:
     alone as a chunk, since a fragment that short can't answer a question by
     itself.
     """
-    sentences_per_chunk = 3
-    overlap_sentences = 1
+    sentences_per_chunk = 5
+    overlap_sentences = 2
     min_sentence_length = 40
 
     chunks: list[Chunk] = []
