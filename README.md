@@ -30,21 +30,37 @@ I changed my approach partway through. I first tried grouping 2 sentences per ch
 
 ## Sample Chunks
 
+*(Note: chunk boundaries below reflect the current index, after Unit 2's second improvement changed chunking to 5-sentence groups. The original Unit 1 submission used 3-sentence groups; the content and topics are the same, only the exact split points differ.)*
+
 **Chunk 1** — source: `admin_add_drop_deadline.txt#0` — produced by: `chunker.py::split_documents`
 
-**Chunk 2** — source: `course_cs_340.txt#2` — produced by: `chunker.py::split_documents`
+> On the add/drop deadline. You can add a course through the end of the second week. Dropping is a longer window — through the end of week six — but a drop after week two shows as a W on your transcript. Nothing anywhere on the registrar's site says this plainly, and students find out from each other.
+
+**Chunk 2** — source: `course_cs_340.txt#1` — produced by: `chunker.py::split_documents`
+
+> Lightly curved, usually two or three points. Expect 6 hours a week early, 15 in the last three weeks when the project lands. The one piece of advice: start the term project in week three, not week eight; everyone learns this the hard way.
 
 **Chunk 3** — source: `dining_halden_hall.txt#0` — produced by: `chunker.py::split_documents`
 
-**Chunk 4** — source: `dining_verrill_street_grill.txt#2` — produced by: `chunker.py::split_documents`
+> Halden Hall. I lived here my sophomore year. Wait times: rarely more than 8 minutes, even at noon. The thing worth going for is soup rotation, and the bread is baked on site. The thing to know is that it closes at 7:00pm, which catches people out. Hours are 7:30am to 7:00pm weekdays, closed Sundays.
 
-**Chunk 5** — source: `housing_morrow_house.txt#2` — produced by: `chunker.py::split_documents`
+**Chunk 4** — source: `dining_verrill_street_grill.txt#1` — produced by: `chunker.py::split_documents`
+
+> The thing to know is that one register, so the queue is a single line no matter how busy. Hours are 11:00am to 1:00am daily during term. Costs declining balance, or cash after 11:00pm.
+
+**Chunk 5** — source: `housing_morrow_house.txt#1` — produced by: `chunker.py::split_documents`
+
+> The bad: known damp problem on the ground floor; two rooms were taken offline in 2024. Laundry costs $1.50 wash, $1.25 dry, coin or card. On noise: loud until about 1am on weekends, no enforced quiet hours.
 
 ## Sample Answer
 
 **Question:** Is the housing lottery actually random?
 
 **Answer:**
+
+The housing lottery is not entirely random in the way most people assume. While rising sophomores get a number drawn at random, juniors and seniors are ordered by accumulated credit hours first, with random selection used only as a tie-breaker.
+
+(Source: *admin_housing_lottery.txt*)
 
 **My relevance cutoff:** 0.6 (the starter default — my data confirmed it sits well inside a clean gap)
 
@@ -62,6 +78,37 @@ I changed my approach partway through. I first tried grouping 2 sentences per ch
 | How do I write a for loop in Rust? | No | 0.896 |
 
 In-corpus distances ranged 0.171–0.273. Out-of-scope distances ranged 0.825–0.934. That's a clean gap of about 0.55 with no overlap between the two groups, so the starter's 0.6 cutoff sits comfortably in the middle with wide margin on both sides.
+
+## Stretch Feature: Metadata Filtering (declared)
+
+**Declared:** Each chunk's metadata includes a `topic` field, derived from its source filename's prefix (`admin`, `dining`, `housing`, `course`). The `ask` command accepts an optional `--topic` flag that narrows retrieval to one topic using Chroma's native `where` filter — chunks outside the topic are excluded from the nearest-neighbor search itself, not filtered out of the results afterward.
+
+**Before / after**
+
+```
+> python app.py ask "How do I change my meal plan?"
+(best distance 0.336, cutoff 0.6)
+
+You can change your meal plan tier once within the first ten days of the
+semester by downgrading (which refunds the difference to your student
+account) or upgrading (which bills you immediately).
+
+Source: admin_meal_plan_changes.txt
+Sources retrieved: admin_meal_plan_changes.txt, dining_kestrel_commons_followup.txt,
+dining_north_kitchen_followup.txt, dining_the_atrium.txt, dining_the_atrium_followup.txt
+```
+
+```
+> python app.py ask "How do I change my meal plan?" --topic dining
+(best distance 0.584, cutoff 0.6)
+
+I do not have enough information to answer your question.
+
+Sources retrieved: dining_kestrel_commons_followup.txt, dining_north_kitchen_followup.txt,
+dining_the_atrium.txt, dining_the_atrium_followup.txt, dining_the_ridgeway_cafe.txt
+```
+
+Unfiltered, the closest chunk overall — and the one that actually answers the question — is `admin_meal_plan_changes.txt`, correctly retrieved even though it sits outside the `dining` prefix. With `--topic dining`, that chunk is excluded from the candidate pool before nearest-neighbor search runs at all, so the top 5 backfills entirely with dining-hall chunks. Those chunks pass the distance gate (0.584 < 0.6) but don't actually contain the meal-plan policy, so the model correctly refuses rather than fabricating an answer from loosely related context. This demonstrates the filter changing the retrieval candidate set, not just relabeling results, and shows the system failing safely when a topic restriction removes the document that actually contains the answer.
 
 ## How I Used AI
 
