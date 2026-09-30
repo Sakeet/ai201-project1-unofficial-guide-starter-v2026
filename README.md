@@ -2,17 +2,6 @@
 
 Sakeet Kopparapu — corpus: campus_life
 
-> **This file is your submission.** Fill it in as you go — most sections get
-> written during the milestone that produces them, not at the end.
->
-> How the starter works, and every command you'll need, is in `RUNNING.md`.
-> Leave that file alone.
->
-> **Paste everything as text.** No screenshots, no video. A typed table gets
-> full credit; a picture of the same table gets none.
-
----
-
 # Unit 1
 
 ## What This Does
